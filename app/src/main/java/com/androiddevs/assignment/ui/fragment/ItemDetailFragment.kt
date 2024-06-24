@@ -1,8 +1,10 @@
+package com.androiddevs.assignment.ui.fragment
+
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,7 +16,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.navArgs
 import com.androiddevs.assignment.R
-import com.androiddevs.assignment.ui.fragment.ItemDetailFragmentArgs
 import com.androiddevs.assignment.ui.viewmodel.ItemViewModel
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -65,22 +66,15 @@ class ItemDetailFragment : Fragment() {
 
         shareButton.setOnClickListener {
             // Example: Share content to Facebook if logged in, else handle authentication
-            if (isFacebookLoggedIn()) {
-                shareContent("facebook")
-            } else {
-                Snackbar.make(requireView(), "Not logged in to Facebook. Please login to share.", Snackbar.LENGTH_LONG).show()
-                // Example: Implement loginToFacebook() to handle login
-                // loginToFacebook()
-            }
+
+                shareContent()
+
         }
     }
 
-    private fun isFacebookLoggedIn(): Boolean {
-        // Implement logic to check if user is logged in to Facebook
-        return false // Placeholder, implement as per your authentication mechanism
-    }
 
-    private fun shareContent(socialMedia: String) {
+
+    private fun shareContent() {
         val title = titleEditText.text.toString()
         val description = descriptionTextView.text.toString()
 
@@ -99,14 +93,36 @@ class ItemDetailFragment : Fragment() {
 
         // Choose App
         val chooser = Intent.createChooser(shareIntent, "Share via")
-        if (shareIntent.resolveActivity(requireActivity().packageManager) != null) {
+        val resolveInfo = shareIntent.resolveActivity(requireActivity().packageManager)
+
+        if (resolveInfo != null) {
+            // Get the package name
+            val packageName = resolveInfo.packageName
+            // Map the package name to a user-friendly name
+            val socialMediaName = getSocialMediaName(packageName)
+
+            Log.d("TAG",socialMediaName);
+
             // Log analytics event for content shared
-            logShareEvent(socialMedia, title, description)
+            logShareEvent("socialMedia", title, description)
             startActivity(chooser)
         } else {
             Snackbar.make(requireView(), "No apps available to share content.", Snackbar.LENGTH_LONG).show()
         }
     }
+
+
+    private fun getSocialMediaName(packageName: String): String {
+        return when (packageName) {
+            "com.facebook" -> "Facebook"
+            "com.instagram.android" -> "Instagram"
+            "com.twitter.android" -> "Twitter"
+            "com.whatsapp" -> "WhatsApp"
+            "com.linkedin.android" -> "LinkedIn"
+            else -> "Other"
+        }
+    }
+
 
     private fun logShareEvent(socialMedia: String, title: String, description: String) {
         // Log analytics event for sharing content

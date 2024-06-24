@@ -94,10 +94,9 @@ dependencies {
     implementation 'com.google.android.gms:play-services-measurement-api:17.0.0'
 
 
-    implementation 'com.example.android:module-name:1.0'
 
-
-
-
+    implementation ('com.google.android.gms:play-services-measurement-api:18.0.0') {
+        force = true
+    }
 
 }
