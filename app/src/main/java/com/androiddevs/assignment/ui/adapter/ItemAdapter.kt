@@ -1,6 +1,6 @@
 package com.androiddevs.assignment.ui.adapter
 
-
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,9 +23,7 @@ class ItemAdapter(private val items: List<Item>, private val onItemClicked: (Ite
         holder.bind(item)
     }
 
-    override fun getItemCount(): Int {
-        return items.size
-    }
+    override fun getItemCount(): Int = items.size
 
     inner class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val titleTextView: TextView = itemView.findViewById(R.id.itemTitle)
@@ -35,10 +33,8 @@ class ItemAdapter(private val items: List<Item>, private val onItemClicked: (Ite
         fun bind(item: Item) {
             titleTextView.text = item.title
             descriptionTextView.text = item.description
-            // Set image - example using placeholder drawable
-            imageView.setImageResource(R.drawable.android)
+            imageView.setImageURI(item.imageUri ?: Uri.parse("android.resource://com.androiddevs.assignment/drawable/android"))
 
-            // Handle item click
             itemView.setOnClickListener {
                 onItemClicked(item)
             }

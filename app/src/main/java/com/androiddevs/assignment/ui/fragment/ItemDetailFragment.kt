@@ -2,16 +2,19 @@ package com.androiddevs.assignment.ui.fragment
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.navArgs
@@ -65,14 +68,27 @@ class ItemDetailFragment : Fragment() {
         }
 
         shareButton.setOnClickListener {
-            // Example: Share content to Facebook if logged in, else handle authentication
-
+            if (resources.getBoolean(R.bool.is_tv)) {
+                shareToFacebook()
+            } else {
                 shareContent()
-
+            }
         }
+
+        // Handle back button press
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                hideKeyboard()
+                isEnabled = false
+                requireActivity().onBackPressed()
+            }
+        })
     }
 
-
+    private fun hideKeyboard() {
+        val inputMethodManager = requireContext().getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.hideSoftInputFromWindow(requireView().windowToken, 0)
+    }
 
     private fun shareContent() {
         val title = titleEditText.text.toString()
@@ -101,20 +117,51 @@ class ItemDetailFragment : Fragment() {
             // Map the package name to a user-friendly name
             val socialMediaName = getSocialMediaName(packageName)
 
-            Log.d("TAG",socialMediaName);
+            Log.d("TAG", socialMediaName)
 
             // Log analytics event for content shared
-            logShareEvent("socialMedia", title, description)
+            logShareEvent(socialMediaName, title, description)
             startActivity(chooser)
         } else {
             Snackbar.make(requireView(), "No apps available to share content.", Snackbar.LENGTH_LONG).show()
         }
     }
 
+    private fun shareToFacebook() {
+        val title = titleEditText.text.toString()
+        val description = descriptionTextView.text.toString()
+
+        // Check if Facebook app is installed
+        if (isFacebookInstalled()) {
+            val shareIntent = Intent(Intent.ACTION_SEND)
+            shareIntent.type = "image/*"
+            shareIntent.setPackage("com.facebook.katana")
+
+            if (selectedImageUri != null) {
+                shareIntent.putExtra(Intent.EXTRA_STREAM, selectedImageUri)
+            }
+
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, title)
+            shareIntent.putExtra(Intent.EXTRA_TEXT, description)
+
+            startActivity(shareIntent)
+        } else {
+            Snackbar.make(requireView(), "Facebook app is not installed.", Snackbar.LENGTH_LONG).show()
+        }
+    }
+
+    private fun isFacebookInstalled(): Boolean {
+        return try {
+            requireActivity().packageManager.getPackageInfo("com.facebook.katana", 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
 
     private fun getSocialMediaName(packageName: String): String {
         return when (packageName) {
-            "com.facebook" -> "Facebook"
+            "com.facebook.katana" -> "Facebook"
             "com.instagram.android" -> "Instagram"
             "com.twitter.android" -> "Twitter"
             "com.whatsapp" -> "WhatsApp"
@@ -123,13 +170,16 @@ class ItemDetailFragment : Fragment() {
         }
     }
 
-
     private fun logShareEvent(socialMedia: String, title: String, description: String) {
+        val isTv = resources.getBoolean(R.bool.is_tv)
+        val source = if (isTv) "Television" else "Mobile"
+
         // Log analytics event for sharing content
         val params = Bundle().apply {
             putString("social_media", socialMedia)
             putString("title", title)
             putString("description", description)
+            putString("source", source)
         }
         firebaseAnalytics.logEvent("content_shared", params)
     }
